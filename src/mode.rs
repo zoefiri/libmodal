@@ -1,6 +1,7 @@
-use chashmap::CHashMap;
+use super::bind_handler::BindHandler;
 use super::input::Input;
-use std::{cmp::Eq, hash::Hash, fmt::Debug};
+use chashmap::CHashMap;
+use std::{cmp::Eq, fmt::Debug, hash::Hash};
 
 //  # Control Flow
 //  - your main event loop calls process_bind() on bindsym
@@ -16,37 +17,46 @@ use std::{cmp::Eq, hash::Hash, fmt::Debug};
 //      a'la `dw` (delete to start of next word)
 
 #[derive(Debug)]
-struct BindHandler<K: Debug + Hash + PartialEq> {
-    key: K,
-    pub handler: fn(resources: super::resource::ResourceMap),
-} 
-
-#[derive(Debug)]
-pub struct Mode<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq> {
+pub struct Mode<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq + Clone> {
     pub mode: T,
     pub bind_map: CHashMap<K, BindHandler<K>>,
 }
 
-pub fn init_mode<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq>(mode_id: T, handlers: Vec<BindHandler<Input<K>>>) -> Mode<T, K> {
-    let mut mode = Mode{
+pub fn init_mode<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq + Clone>(
+    mode_id: T,
+    handlers: Vec<BindHandler<Input<K>>>,
+) -> Mode<T, K> {
+    let mode = Mode {
         mode: mode_id,
         bind_map: CHashMap::new(),
     };
 
     // insert handlers
     for handler in handlers {
-        let key = handler.key;
+        let key = handler.key.clone();
 
         // panic if attempting to insert two handlers under the same key
         match key {
             Input::Single(input) => {
-                if let Some(existing_bind_handler) = mode.bind_map.insert(input, BindHandler{key: input, handler: handler.handler}) {
+                if let Some(existing_bind_handler) = mode.bind_map.insert(
+                    input.clone(),
+                    BindHandler {
+                        key: input.clone(),
+                        handler: handler.handler,
+                    },
+                ) {
                     panic!("mode map was initialized with handler {:?} and handler {:?} under the same key", handler, existing_bind_handler)
                 }
-            }, 
+            }
             Input::Group(inputs) => {
                 for input in inputs {
-                    if let Some(existing_bind_handler) = mode.bind_map.insert(input, BindHandler{key: input, handler: handler.handler}) {
+                    if let Some(existing_bind_handler) = mode.bind_map.insert(
+                        input.clone(),
+                        BindHandler {
+                            key: input.clone(),
+                            handler: handler.handler,
+                        },
+                    ) {
                         panic!("mode map was initialized with handler {:?} and handler {:?} under the same key", handler, existing_bind_handler)
                     }
                 }
@@ -58,5 +68,5 @@ pub fn init_mode<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq>(mode_
 }
 
 // pub struct Chain {
-//     resource_change_trigger: TypeId, 
+//     resource_change_trigger: TypeId,
 // }

@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 chashmap = { version = "2.2.2" }
+ropey = { version = "1.6.1" }
+

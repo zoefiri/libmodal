@@ -54,7 +54,7 @@ impl Map for ResourceMap {
 /// public `ResourceMap` methods
 impl ResourceMap {
     /// adds the libmodal managed resource for tracking mode with mode enum T
-    pub fn add_mode_resource<T>(&mut self, initial_mode: T) -> &mut ResourceMap {
+    pub fn add_mode_resource<T: 'static>(&mut self, initial_mode: T) -> &mut ResourceMap {
         self.set_resource(initial_mode);
         self
     }

@@ -1,5 +1,6 @@
 use super::mode::Mode;
-use std::{collections::HashMap, hash::Hash, fmt::Debug};
+use super::resource::{Map, ResourceMap};
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 /// Stores `Mode`s
 ///
@@ -9,11 +10,13 @@ use std::{collections::HashMap, hash::Hash, fmt::Debug};
 /// * `K` -  the type used as the key for the bind map contained in the modes, usually this is
 /// probably just keycodes/uint/strings/etc.
 ///
-pub struct ModeMap<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq> {
+pub struct ModeMap<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq + Clone> {
     pub map: HashMap<T, Mode<T, K>>,
 }
 
-pub fn init_mode_map<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq>(modes: Vec<Mode<T, K>>) -> ModeMap<T, K> {
+pub fn init_mode_map<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq + Clone>(
+    modes: Vec<Mode<T, K>>,
+) -> ModeMap<T, K> {
     let mut mode_map = ModeMap {
         map: HashMap::new(),
     };
@@ -29,4 +32,26 @@ pub fn init_mode_map<T: Hash + Eq + Copy + Debug, K: Debug + Hash + PartialEq>(m
     }
 
     mode_map
+}
+
+/// take a resource map and a mode->(bind -> handler) map, and run the handler with the given
+/// resources
+pub(crate) fn proc_bind<
+    T: 'static + Hash + Eq + Copy + Debug,
+    K: Debug + Hash + PartialEq + Clone,
+>(
+    resources: ResourceMap,
+    modes: ModeMap<T, K>,
+    bind: K,
+) {
+    // retrieve the current mode
+    let mode = resources
+        .get_resource::<T>()
+        .as_ref()
+        .downcast_ref::<T>()
+        .unwrap()
+        .clone();
+
+    // run the active mode's handler for `bind`
+    (modes.map[&mode].bind_map.get(&bind).unwrap().handler)(resources);
 }
